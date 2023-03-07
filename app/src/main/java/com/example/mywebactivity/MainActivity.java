@@ -1,5 +1,6 @@
 package com.example.mywebactivity;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -15,6 +16,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.webkit.URLUtil;
+import android.webkit.ValueCallback;
+import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -28,6 +31,16 @@ public class MainActivity extends AppCompatActivity {
     WebView webView;
     RelativeLayout no_internet_layout;
     boolean hasConnect;
+
+    private final static int FILECHOOSER_RESULTCODE = 1;
+    private ValueCallback<Uri[]> filepath;
+//    private ValueCallback<Uri> filedata;
+//    private static String file_type="*/*";
+//
+//    private  ValueCallback fileCAllback;
+//    public  static  final int REQUEST_SELECT_FILE=100;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -37,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
         no_internet_layout=findViewById(R.id.no_internet_layout);
 
         webView.setWebViewClient(new WebViewClient());
+        webView.setWebChromeClient(new WebChromeClient());
 
         ConnectivityManager manager = (ConnectivityManager)MainActivity.this
                 .getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -45,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
 
         if(hasConnect)
         {
-            webView.loadUrl("https://mmobilepku.com/");
+            webView.loadUrl("http://mmobilepku.epizy.com/");
             no_internet_layout.setVisibility(View.GONE);
             webView.setVisibility(View.VISIBLE);
         }
@@ -58,14 +72,91 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
+
         WebSettings webSettings=webView.getSettings();
         webSettings.setJavaScriptEnabled(true);
+        webSettings.setDomStorageEnabled(true);
+        webSettings.setDatabaseEnabled(true);
+        webSettings.setAllowFileAccess(true);
+        webSettings.setAllowContentAccess(true);
     }
+
+//    file
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode,  Intent intent) {
+        if (requestCode != FILECHOOSER_RESULTCODE || filepath == null) {
+            super.onActivityResult(requestCode, resultCode, intent);
+            return;
+        }
+
+        Uri[] result=null;
+            String dataString=intent.getDataString();
+            if(dataString!=null){
+                result=new Uri[]{Uri.parse(dataString)};
+                filepath.onReceiveValue(result);
+            }
+
+            filepath=null;
+
+
+
+
+//        if(resultCode==FILECHOOSER_RESULTCODE){
+//            if(null==filepath || intent==null || resultCode!=RESULT_OK ){
+////
+//                super.onActivityResult(requestCode, resultCode, intent);
+//                return;
+//            }
+//            Uri[] result=null;
+//            String dataString=intent.getDataString();
+//            if(dataString!=null){
+//                result=new Uri[]{Uri.parse(dataString)};
+//            }
+//            filepath.onReceiveValue(result);
+//            filepath=null;
+//        }
+    }
+
+//    end of file upload
+
+
 
     public void ReconnectWebsite(View view) {
         finish();
         startActivity(getIntent());
     }
+
+
+//    start of webchrome
+    private  class  MyWebChromeClient extends  WebChromeClient{
+    @Override
+    public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
+
+            if(filepath!=null){
+                filepath.onReceiveValue(null);
+            }
+            filepath=filePathCallback;
+
+            Intent i=new Intent(Intent.ACTION_GET_CONTENT);
+            i.addCategory(Intent.CATEGORY_OPENABLE);
+            i.setType("image/*");
+
+        Intent chooserIntent = new Intent(Intent.ACTION_CHOOSER);
+        chooserIntent.putExtra(Intent.EXTRA_INTENT, i);
+        chooserIntent.putExtra(Intent.EXTRA_TITLE, "Image Chooser");
+        startActivityForResult(chooserIntent, FILECHOOSER_RESULTCODE);
+//            startActivityForResult(Intent.createChooser(i,"File Chooser"),MainActivity.FILECHOOSER_RESULTCODE);
+//            startActivityForResult(i,MainActivity.FILECHOOSER_RESULTCODE);
+
+//        return super.onShowFileChooser(webView, filePathCallback, fileChooserParams);
+            return  true;
+
+
+    }
+
+}
+//    end of webchrome
 
 
     private class MyWebClient extends WebViewClient{
@@ -79,6 +170,8 @@ public class MainActivity extends AppCompatActivity {
         public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
             return super.shouldOverrideUrlLoading(view, request);
         }
+
+
 
         @Override
         public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
