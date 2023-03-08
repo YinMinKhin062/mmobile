@@ -1,9 +1,14 @@
 package com.example.mywebactivity;
 
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -32,8 +37,11 @@ public class MainActivity extends AppCompatActivity {
     RelativeLayout no_internet_layout;
     boolean hasConnect;
 
-    private final static int FILECHOOSER_RESULTCODE = 1;
+//    private final static int FILECHOOSER_RESULTCODE = 1;
     private ValueCallback<Uri[]> filepath;
+
+    private ValueCallback fileCallback;
+
 //    private ValueCallback<Uri> filedata;
 //    private static String file_type="*/*";
 //
@@ -82,41 +90,44 @@ public class MainActivity extends AppCompatActivity {
     }
 
 //    file
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode,  Intent intent) {
-        if (requestCode != FILECHOOSER_RESULTCODE || filepath == null) {
-            super.onActivityResult(requestCode, resultCode, intent);
-            return;
-        }
-
-        Uri[] result=null;
-            String dataString=intent.getDataString();
-            if(dataString!=null){
-                result=new Uri[]{Uri.parse(dataString)};
-                filepath.onReceiveValue(result);
-            }
-
-            filepath=null;
-
-
-
-
-//        if(resultCode==FILECHOOSER_RESULTCODE){
-//            if(null==filepath || intent==null || resultCode!=RESULT_OK ){
-////
+//
+//    ActivityResultLauncher <String> mGetContent=registerForActivityResult(new ActivityResultContracts.GetContent(),new AcitivityResultCallback<Uri>(){
+//        @Override
+//        public void onActivityResult(int requestCode, int resultCode,  Intent intent) {
+//            if (requestCode != FILECHOOSER_RESULTCODE || filepath == null) {
 //                super.onActivityResult(requestCode, resultCode, intent);
 //                return;
 //            }
+//
 //            Uri[] result=null;
 //            String dataString=intent.getDataString();
 //            if(dataString!=null){
 //                result=new Uri[]{Uri.parse(dataString)};
+//                filepath.onReceiveValue(result);
 //            }
-//            filepath.onReceiveValue(result);
+//
 //            filepath=null;
+//
 //        }
-    }
+//
+//    });
+    ActivityResultLauncher<Intent> mStartForResult = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+        new ActivityResultCallback<ActivityResult>() {
+            @Override
+            public void onActivityResult(ActivityResult result) {
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    Intent intent = result.getData();
+                   Uri[] results=null;
+                   String dataString= String.valueOf(result.getData());
+                if(dataString!=null){
+                    results=new Uri[]{Uri.parse(dataString)};
+                    filepath.onReceiveValue(results);
+                }
+                filepath=null;
+                }
+            }
+        });
+
 
 //    end of file upload
 
@@ -130,30 +141,47 @@ public class MainActivity extends AppCompatActivity {
 
 //    start of webchrome
     private  class  MyWebChromeClient extends  WebChromeClient{
+
     @Override
-    public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
-
-            if(filepath!=null){
-                filepath.onReceiveValue(null);
-            }
-            filepath=filePathCallback;
-
-            Intent i=new Intent(Intent.ACTION_GET_CONTENT);
-            i.addCategory(Intent.CATEGORY_OPENABLE);
-            i.setType("image/*");
-
-        Intent chooserIntent = new Intent(Intent.ACTION_CHOOSER);
-        chooserIntent.putExtra(Intent.EXTRA_INTENT, i);
-        chooserIntent.putExtra(Intent.EXTRA_TITLE, "Image Chooser");
-        startActivityForResult(chooserIntent, FILECHOOSER_RESULTCODE);
-//            startActivityForResult(Intent.createChooser(i,"File Chooser"),MainActivity.FILECHOOSER_RESULTCODE);
-//            startActivityForResult(i,MainActivity.FILECHOOSER_RESULTCODE);
-
-//        return super.onShowFileChooser(webView, filePathCallback, fileChooserParams);
-            return  true;
-
-
+    public boolean onShowFileChooser(WebView v, ValueCallback back, WebChromeClient.FileChooserParams param) {
+        //assign value
+        fileCallback=back;
+        //launch chooser activity
+        //createIntent will automatically set intent parameters for choosing file
+        mStartForResult.launch(param.createIntent());
+        return true;
     }
+
+
+
+//    @Override
+//    public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
+//
+//            if(filepath!=null){
+//                filepath.onReceiveValue(null);
+//            }
+//            filepath=filePathCallback;
+//
+//            Intent i=new Intent(Intent.ACTION_GET_CONTENT);
+//            i.addCategory(Intent.CATEGORY_OPENABLE);
+//            i.setType("image/*");
+//
+//        Intent chooserIntent = new Intent(Intent.ACTION_CHOOSER);
+//        chooserIntent.putExtra(Intent.EXTRA_INTENT, i);
+//        chooserIntent.putExtra(Intent.EXTRA_TITLE, "Image Chooser");
+//
+////        MyWebChromeClient.getFile.launch(chooserIntent);
+//
+//            mStartForResult.launch(chooserIntent);
+////        startActivityForResult(chooserIntent, FILECHOOSER_RESULTCODE);
+////            startActivityForResult(Intent.createChooser(i,"File Chooser"),MainActivity.FILECHOOSER_RESULTCODE);
+////            startActivityForResult(i,MainActivity.FILECHOOSER_RESULTCODE);
+//
+////        return super.onShowFileChooser(webView, filePathCallback, fileChooserParams);
+//            return  true;
+//
+//
+//    }
 
 }
 //    end of webchrome
@@ -226,4 +254,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
     }
+
+
 }
